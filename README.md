@@ -10,7 +10,7 @@ skills, and automated quality gates that every change, human or AI, has to pass.
 |---|---|
 | `CLAUDE.md` | Standing instructions for the agent: commands, architecture rules, definition of done, security rules |
 | `PLAN.md` | Feature spec and backlog with acceptance criteria; the agent works from it and ticks items off |
-| `.claude/skills/` | Reusable procedures: `add-api-endpoint`, `write-tests`, `pre-pr-check`, `billing-security-check` |
+| `.claude/skills/` | Reusable procedures: `add-api-endpoint`, `write-tests`, `pre-pr-check`, `billing-security-check`, `new-project-setup` |
 | `.claude/settings.json` | Agent permissions: safe commands allowed, commits/installs need approval, secrets unreadable |
 | `docs/adr/` | Architecture Decision Records: conclusions carried between sessions and people |
 | `.github/workflows/ci.yml` | Build, analyzers, format, tests + coverage, SonarQube, CodeQL, gitleaks, dependency audit |
@@ -39,6 +39,68 @@ npm run dev                                               # http://localhost:517
 5. **Secure:** `/billing-security-check` for anything touching money or auth.
 6. **Human gate:** a person reviews and approves; CI enforces the same gates on the PR.
 7. **Measure:** track lead time, rework, review effort and escaped defects to see whether it helps.
+
+## Use this as a template for a new project
+
+The billing code is a worked example. What you reuse is the **structure around it**: the agent
+instructions, skills, quality gates and CI. Replace the domain with your own.
+
+### 1. Create the new repository
+
+- One-time, on this repo: **Settings → General → tick "Template repository"**.
+- Then click **Use this template → Create a new repository** (or `gh repo create my-app --template JLacina/billing-agentic-template`).
+- Clone it and open it in your editor with Claude Code.
+
+### 2. Let Claude do the setup
+
+Run the project skill and answer its questions:
+
+```
+/new-project-setup
+```
+
+It asks for the product name, domain and first feature, then renames the solution, projects and
+namespaces (`Billing.*` → `YourProduct.*`), rewrites `CLAUDE.md`, `PLAN.md` and the domain security
+skill for your domain, and runs every gate to prove the renamed project still builds and passes.
+You can also follow the manual checklist below.
+
+### 3. What to keep, change or replace
+
+| Keep as is (the reusable part) | Adapt to your project | Replace (example code) |
+|---|---|---|
+| `Directory.Build.props`, `.editorconfig` (analyzers, warnings as errors, NuGet audit, lock files) | `CLAUDE.md`: product description, domain rules, security rules for your risk areas | `src/*/Invoices/*`, `Money`: your own aggregates and value objects |
+| `.github/workflows/ci.yml`, `dependabot.yml`, PR template | `PLAN.md`: your goal, scope and first backlog items with acceptance criteria | `tests/**`: tests for your domain (keep the three-level structure) |
+| `Result`/`Error` pattern, `ToHttp` mapping, layer structure | `.claude/skills/billing-security-check` → rename to `<domain>-security-check` with your risks | `web/src/features/invoices`: your first feature |
+| Skills `add-api-endpoint`, `write-tests`, `pre-pr-check` (update names and paths) | `.claude/settings.json`: add your own allowed and denied commands | `docs/adr/0001`: keep it as an example or rewrite it for your decisions |
+
+### 4. Manual checklist (if you don't use the skill)
+
+1. Rename: `Billing.sln`, `src/Billing.*`, `tests/Billing.*`, and every `Billing` namespace and
+   project reference to your product name. Then run `dotnet build` and `dotnet test`.
+2. Delete the invoice example code and its tests, keeping `Common/Result.cs` and the project structure.
+3. Rewrite `CLAUDE.md` (keep the sections: commands, architecture rules, coding standards,
+   definition of done, security rules, agent workflow) and `PLAN.md`.
+4. Regenerate the NuGet lock files with `dotnet restore --force-evaluate`, and commit them.
+5. Set up the repository on GitHub:
+   - **Secrets and variables → Actions:** `SONAR_TOKEN`, `SONAR_ORG`, `SONAR_PROJECT_KEY` (and turn off
+     Automatic Analysis in SonarQube Cloud).
+   - **Settings → Security:** enable the Dependency graph and Dependabot alerts, then set the
+     variable `DEPENDENCY_GRAPH_ENABLED` to `true`.
+   - **Settings → Branches:** protect `main`, require a pull request with one approval, and require
+     the CI jobs (`build`, `unit-tests`, `integration-tests`, `frontend`, `sonar`, `codeql`,
+     `secrets`, `vulnerability-scan`) to pass.
+6. Push, and check that every CI job is green before building features.
+
+### 5. Start building
+
+Give the agent a feature from `PLAN.md`, for example:
+
+```
+Implement the first unchecked item in PLAN.md. Propose a plan first and wait for my approval.
+Use /add-api-endpoint, write the tests first, and finish with /pre-pr-check.
+```
+
+Review the plan, review the diff, open a PR, and let CI and a human reviewer decide whether it merges.
 
 ## CI pipeline explained
 

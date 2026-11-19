@@ -66,7 +66,7 @@ Feature scope and status live in `PLAN.md`. Design decisions live in `docs/adr/`
 ## Agent workflow
 
 - For anything larger than a small fix: read `PLAN.md`, propose a short plan, wait for approval.
-- Use the project skills in `.claude/skills/` (`/add-api-endpoint`, `/write-tests`, `/pre-pr-check`,
+- Use the project skills in `.claude/skills/` (`/add-api-endpoint`, `/write-tests`, `/pre-pr-check`, `/new-project-setup`,
   `/billing-security-check`).
 - Never commit, push, or open a PR unless explicitly asked each time.
 - When handing off, write conclusions (decisions, open questions) to `docs/adr/` or `PLAN.md`,
