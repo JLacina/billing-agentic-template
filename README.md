@@ -22,11 +22,11 @@ skills, and automated quality gates that every change, human or AI, has to pass.
 ## Run it
 
 ```bash
-dotnet test                                               # 34 backend tests (29 unit, 5 integration)
+dotnet test                                               # 86 backend tests (70 unit, 16 integration)
 dotnet run --project src/Billing.Api --urls http://localhost:5000
 
 cd web && npm ci
-npm run test:coverage                                     # 8 frontend tests + coverage gate
+npm run test:coverage                                     # 11 frontend tests + coverage gate
 npm run dev                                               # http://localhost:5173
 ```
 
@@ -86,9 +86,12 @@ You can also follow the manual checklist below.
      Automatic Analysis in SonarQube Cloud).
    - **Settings → Security:** enable the Dependency graph and Dependabot alerts, then set the
      variable `DEPENDENCY_GRAPH_ENABLED` to `true`.
-   - **Settings → Branches:** protect `main`, require a pull request with one approval, and require
-     the CI jobs (`build`, `unit-tests`, `integration-tests`, `frontend`, `sonar`, `codeql`,
-     `secrets`, `vulnerability-scan`) to pass.
+   - **Settings → Rules → Rulesets:** add a ruleset for `main` that requires a pull request with one
+     approval and requires the CI jobs (`build`, `unit-tests`, `integration-tests`, `frontend`,
+     `sonar`, `secrets`, `vulnerability-scan`) to pass.
+   - In the same ruleset, enable **Require code scanning results** for the tools **CodeQL** and
+     **osv-scanner**, with security alerts **High or higher** and alerts **Errors**. Without this,
+     CodeQL findings are only reported, not enforced (see the `codeql` row below).
 6. Push, and check that every CI job is green before building features.
 
 ### 5. Start building
@@ -119,11 +122,11 @@ codeql (C#, TS)   secrets   vulnerability-scan   dependency-review (PRs only)
 | Job | What it does | Fails when | Run it locally |
 |---|---|---|---|
 | **build** | Restores NuGet packages from the lock files, compiles with analyzers at `latest-recommended` and warnings as errors, checks formatting, lists vulnerable packages | Compile error, any analyzer warning, unformatted code, a vulnerable NuGet package, or lock files out of date | `dotnet build` and `dotnet format --verify-no-changes` |
-| **unit-tests** | Runs the Domain tests (business rules: money, tax, invoice lifecycle) and Application tests (use cases with fakes). Collects coverage and adds a results table to the run's Summary page | Any test fails | `dotnet test tests/Billing.Domain.Tests` and `dotnet test tests/Billing.Application.Tests` |
-| **integration-tests** | Runs the API tests through the real HTTP pipeline (routing, JSON, dependency injection, status codes, ProblemDetails) using `WebApplicationFactory`. Collects coverage and adds a results table | Any test fails | `dotnet test tests/Billing.Api.Tests` |
+| **unit-tests** | Runs the Domain tests (business rules: money, currency policy, limits, invoice lifecycle) and Application tests (use cases with fakes). Collects coverage and adds a results table to the run's Summary page | Any test fails | `dotnet test tests/Billing.Domain.Tests` and `dotnet test tests/Billing.Application.Tests` |
+| **integration-tests** | Runs the API tests through the real HTTP pipeline (routing, JSON, dependency injection, status codes, ProblemDetails) using `WebApplicationFactory`, and the Infrastructure tests for the repository (independent copies, stale-write rejection, 50 concurrent payments). Collects coverage and adds a results table | Any test fails | `dotnet test tests/Billing.Api.Tests` and `dotnet test tests/Billing.Infrastructure.Tests` |
 | **frontend** | `npm ci --ignore-scripts`, ESLint (zero warnings), TypeScript type check, Vitest UI tests with coverage (with a results table), `npm audit`, production build | Lint warning, type error, failing test, coverage under 80%, high-severity npm vulnerability, or build error | `cd web && npm run lint && npm run typecheck && npm run test:coverage` |
 | **sonar** | Sends code and coverage to SonarQube Cloud, which checks bugs, vulnerabilities, code smells, duplication and coverage on new code, then waits for the quality gate | The quality gate fails (skipped if `SONAR_TOKEN` is not set) | n/a (see the SonarQube dashboard) |
-| **codeql** | GitHub's static security analysis of **our own** C# and TypeScript code (injection, XSS, unsafe data flow, and so on) with the `security-extended` queries. Findings appear under Security > Code scanning | A security issue is found | n/a |
+| **codeql** | GitHub's static security analysis of **our own** C# and TypeScript code (injection, XSS, unsafe data flow, and so on) with the `security-extended` queries. Findings appear under Security > Code scanning | The analysis cannot run (for example the code doesn't build). **Findings do not fail this job**; they block merges only when the ruleset requires code scanning results (see the template checklist) | n/a |
 | **secrets** | gitleaks scans the full git history for committed passwords, API keys and tokens | A secret is found | `gitleaks detect` (if installed) |
 | **vulnerability-scan** | OSV-Scanner checks every NuGet and npm dependency, including indirect ones, against the OSV vulnerability database. Findings appear under Security > Code scanning | A dependency has a known vulnerability | `osv-scanner -r .` (if installed) |
 | **dependency-review** | On pull requests only: blocks a PR that **adds** a dependency with a high-severity vulnerability | The PR introduces a high-severity vulnerable package | n/a |
@@ -154,6 +157,12 @@ no more than 3% duplication).
 
 ## Notes
 
-- FluentAssertions is pinned to 7.x (Apache 2.0); version 8 and later need a commercial licence.
+- FluentAssertions is pinned to 7.2.0 (Apache 2.0); version 8 and later need a paid licence for
+  commercial use. `dependabot.yml` ignores its major updates so this stays enforced.
+- Supported currencies are an explicit list (`Currencies.Supported`: GBP, EUR, USD). Amounts,
+  quantities and invoice totals have upper limits (`Invoice.MaxAmount` and friends) so money
+  arithmetic can never overflow.
+- The in-memory repository uses optimistic concurrency (versioned snapshots): a write based on a
+  stale read gets `409 invoice.concurrency_conflict`. EF Core will use the same pattern via rowversion.
 - `web` uses Vite 8 (Rolldown), which also avoids the native Rollup binary that some locked-down
   Windows machines block.

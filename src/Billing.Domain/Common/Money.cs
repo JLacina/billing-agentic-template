@@ -17,15 +17,19 @@ public sealed record Money
 
     public static Money Zero(string currency) => Of(0m, currency);
 
+    /// <summary>
+    /// Creates an amount. Throws for an unsupported currency: callers handling user input must
+    /// validate with <see cref="Currencies.TryNormalize"/> first and return a validation error.
+    /// </summary>
     public static Money Of(decimal amount, string currency)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(currency);
-        if (currency.Length != 3)
+        if (!Currencies.TryNormalize(currency, out var code))
         {
-            throw new ArgumentException("Currency must be a 3-letter ISO 4217 code.", nameof(currency));
+            throw new ArgumentException(
+                $"Currency must be one of: {string.Join(", ", Currencies.Supported)}.", nameof(currency));
         }
 
-        return new Money(decimal.Round(amount, 2, MidpointRounding.ToEven), currency.ToUpperInvariant());
+        return new Money(decimal.Round(amount, 2, MidpointRounding.ToEven), code);
     }
 
     public Money Add(Money other)

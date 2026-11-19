@@ -38,12 +38,62 @@ public class InvoiceApiTests(WebApplicationFactory<Program> factory) : IClassFix
         body.Outstanding.Should().Be(0m);
     }
 
-    [Fact]
-    public async Task CreateInvoice_InvalidCurrency_Returns400()
+    [Theory]
+    [InlineData("POUNDS")]
+    [InlineData("   ")]   // used to return 500
+    [InlineData("123")]   // used to create an invoice the UI could not render
+    [InlineData("XYZ")]
+    public async Task CreateInvoice_InvalidCurrency_Returns400WithCode(string currency)
     {
-        var response = await _client.PostAsJsonAsync("/api/invoices", new CreateInvoiceRequest("cust-1", "POUNDS"));
+        var response = await _client.PostAsJsonAsync("/api/invoices", new CreateInvoiceRequest("cust-1", currency));
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await ProblemCodeAsync(response)).Should().Be("invoice.unsupported_currency");
+    }
+
+    [Fact]
+    public async Task CreateInvoice_LowercaseCurrency_IsNormalised()
+    {
+        var response = await _client.PostAsJsonAsync("/api/invoices", new CreateInvoiceRequest("cust-1", "usd"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        (await response.Content.ReadFromJsonAsync<InvoiceDto>())!.Currency.Should().Be("USD");
+    }
+
+    [Fact]
+    public async Task CreateInvoice_MissingCustomer_Returns400()
+    {
+        var response = await _client.PostAsJsonAsync("/api/invoices", new CreateInvoiceRequest(" ", "GBP"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await ProblemCodeAsync(response)).Should().Be("invoice.invalid_customer");
+    }
+
+    // Regression: an overflowing line used to return 500, stay stored, and break GET and list with 500s.
+    [Fact]
+    public async Task AddLine_OverflowingAmount_Returns400_AndInvoiceAndListStayUsable()
+    {
+        var invoice = await CreateInvoiceAsync();
+
+        var response = await _client.PostAsJsonAsync(
+            $"/api/invoices/{invoice.Id}/lines",
+            new AddLineRequest("huge", 2, 79228162514264337593543950335m, 0m));
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await ProblemCodeAsync(response)).Should().Be("invoice.amount_too_large");
+
+        var get = await _client.GetAsync(new Uri($"/api/invoices/{invoice.Id}", UriKind.Relative));
+        get.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await get.Content.ReadFromJsonAsync<InvoiceDto>())!.Lines.Should().BeEmpty();
+
+        var list = await _client.GetAsync(new Uri("/api/invoices", UriKind.Relative));
+        list.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    private static async Task<string?> ProblemCodeAsync(HttpResponseMessage response)
+    {
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        return problem!.Extensions["code"]?.ToString();
     }
 
     [Fact]

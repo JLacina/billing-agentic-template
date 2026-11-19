@@ -55,7 +55,8 @@ jobs:
           name: unit-coverage
           path: coverage/**/coverage.opencover.xml
 
-  # Tests through the real HTTP pipeline (routing, JSON, DI, status codes) via WebApplicationFactory.
+  # Tests across real boundaries: the HTTP pipeline (routing, JSON, DI, status codes) via
+  # WebApplicationFactory, and the persistence adapter (snapshots, optimistic concurrency).
   integration-tests:
     runs-on: ubuntu-latest
     steps:
@@ -64,12 +65,14 @@ jobs:
         with:
           dotnet-version: 10.0.x
       - run: dotnet restore --locked-mode
-      - name: Run integration tests (API)
-        run: >
-          dotnet test tests/Billing.Api.Tests --no-restore -c Release
-          --logger GitHubActions
-          --collect:"XPlat Code Coverage" --results-directory ./coverage
-          -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+      - name: Run integration tests (API + Infrastructure)
+        run: |
+          for project in tests/Billing.Api.Tests tests/Billing.Infrastructure.Tests; do
+            dotnet test "$project" --no-restore -c Release \
+              --logger GitHubActions \
+              --collect:"XPlat Code Coverage" --results-directory ./coverage \
+              -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+          done
       - uses: actions/upload-artifact@v7
         with:
           name: integration-coverage

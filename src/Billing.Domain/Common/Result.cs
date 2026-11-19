@@ -1,7 +1,23 @@
 namespace Billing.Domain.Common;
 
+/// <summary>What kind of failure an <see cref="Error"/> is. Adapters map this to a transport status (e.g. HTTP).</summary>
+public enum ErrorType
+{
+    /// <summary>The input is malformed or outside allowed limits (HTTP 400).</summary>
+    Validation,
+
+    /// <summary>The requested resource does not exist (HTTP 404).</summary>
+    NotFound,
+
+    /// <summary>The resource changed since it was read; retry with fresh data (HTTP 409).</summary>
+    Conflict,
+
+    /// <summary>The input is valid but a business rule forbids the operation in the current state (HTTP 422).</summary>
+    Rule,
+}
+
 /// <summary>An expected business failure. Exceptions are reserved for programming errors.</summary>
-public sealed record Error(string Code, string Message);
+public sealed record Error(string Code, string Message, ErrorType Type = ErrorType.Rule);
 
 public class Result
 {

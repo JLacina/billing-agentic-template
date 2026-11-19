@@ -12,8 +12,11 @@ Follow these steps in order. Do not skip the tests.
 
 2. **Domain rule (if the operation changes state).**
    - Add a method to the aggregate in `src/Billing.Domain/Invoices/Invoice.cs` returning `Result`.
-   - Add any new error to `InvoiceErrors.cs` with a stable `invoice.<snake_case>` code.
-   - Write tests first in `tests/Billing.Domain.Tests` covering the happy path and every rule.
+   - Add any new error to `InvoiceErrors.cs` with a stable `invoice.<snake_case>` code and the right
+     `ErrorType` (Validation / NotFound / Conflict / Rule).
+   - Validate every input in the domain **before** changing state, including upper bounds on numbers.
+   - Write tests first in `tests/Billing.Domain.Tests` covering the happy path, every rule, the limits,
+     and that a rejected call leaves the aggregate unchanged.
 
 3. **Use case.** Add a method to `InvoiceService`. State changes must go through the private
    `MutateAsync` helper (load -> apply -> save on success). No business rules here.
@@ -21,9 +24,10 @@ Follow these steps in order. Do not skip the tests.
    including "failed operation is not saved".
 
 4. **HTTP adapter.** Add the route in `src/Billing.Api/InvoiceEndpoints.cs`.
-   - Validate malformed input -> `Results.ValidationProblem` (400).
-   - Map the use-case result through `ToHttp` (do not hand-roll status codes).
-   - Add a test in `tests/Billing.Api.Tests` for success and for each status code.
+   - No validation in the endpoint: map the use-case result through `ToHttp`, which picks the status
+     from the `ErrorType` (do not hand-roll status codes).
+   - Add a test in `tests/Billing.Api.Tests` for success and for each status code, and assert the
+     error `code` in the ProblemDetails body.
 
 5. **Frontend contract.** If the DTO changed, update `web/src/features/invoices/types.ts`.
 

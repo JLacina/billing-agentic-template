@@ -12,9 +12,15 @@ public sealed class InvoiceService(IInvoiceRepository repository, TimeProvider c
     public async Task<Result<InvoiceDto>> CreateAsync(CreateInvoiceRequest request, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var invoice = Invoice.CreateDraft(request.CustomerId, request.Currency);
-        await repository.SaveAsync(invoice, ct).ConfigureAwait(false);
-        return Result<InvoiceDto>.Success(InvoiceDto.From(invoice));
+        var created = Invoice.CreateDraft(request.CustomerId, request.Currency);
+        if (!created.IsSuccess)
+        {
+            return Result<InvoiceDto>.Failure(created.Error!);
+        }
+
+        return await repository.SaveAsync(created.Value, ct).ConfigureAwait(false)
+            ? Result<InvoiceDto>.Success(InvoiceDto.From(created.Value))
+            : Result<InvoiceDto>.Failure(InvoiceErrors.ConcurrencyConflict);
     }
 
     public async Task<Result<InvoiceDto>> GetAsync(Guid id, CancellationToken ct)
@@ -51,6 +57,7 @@ public sealed class InvoiceService(IInvoiceRepository repository, TimeProvider c
     }
 
     // DRY: every state-changing use case is "load -> apply domain operation -> save if it succeeded".
+    // A concurrent change makes the save fail; the caller gets a 409 and retries with fresh data.
     private async Task<Result<InvoiceDto>> MutateAsync(Guid id, Func<Invoice, Result> operation, CancellationToken ct)
     {
         var invoice = await repository.GetAsync(id, ct).ConfigureAwait(false);
@@ -65,7 +72,8 @@ public sealed class InvoiceService(IInvoiceRepository repository, TimeProvider c
             return Result<InvoiceDto>.Failure(result.Error!);
         }
 
-        await repository.SaveAsync(invoice, ct).ConfigureAwait(false);
-        return Result<InvoiceDto>.Success(InvoiceDto.From(invoice));
+        return await repository.SaveAsync(invoice, ct).ConfigureAwait(false)
+            ? Result<InvoiceDto>.Success(InvoiceDto.From(invoice))
+            : Result<InvoiceDto>.Failure(InvoiceErrors.ConcurrencyConflict);
     }
 }

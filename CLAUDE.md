@@ -23,9 +23,14 @@ Feature scope and status live in `PLAN.md`. Design decisions live in `docs/adr/`
   `Domain` references nothing. `Application` never references `Infrastructure` or ASP.NET.
 - Business rules live in the domain aggregate (`Invoice`), never in endpoints or services.
   Services orchestrate: load, call domain, save.
-- Expected business failures return `Result` / `Error` with a stable `code`. Exceptions are for bugs.
-- Endpoints map `Result` to HTTP in one place (`ToHttp`): 404 not found, 422 rule violation,
-  400 malformed input. Responses are RFC 7807 ProblemDetails.
+- Expected business failures return `Result` / `Error` with a stable `code` and an `ErrorType`.
+  Exceptions are for bugs. Validate in the domain, before any state changes.
+- Endpoints map `Result` to HTTP in one place (`ToHttp`) by `ErrorType`: Validation 400,
+  NotFound 404, Conflict 409, Rule 422. Endpoints don't validate. Responses are RFC 7807 ProblemDetails.
+- Any user-supplied number has an upper bound (`Invoice.MaxAmount`, `MaxQuantity`); currencies come
+  from the explicit `Currencies.Supported` list.
+- Repositories return copies and save with optimistic concurrency (`SaveAsync` returns `false` on a
+  stale write). Never rely on shared mutable entities between requests.
 - Money is always `Money` (decimal + ISO currency). Never `double`/`float`, never a bare decimal
   crossing the domain boundary.
 - Time comes from the injected `TimeProvider`, never `DateTime.Now`, so it can be tested.

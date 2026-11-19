@@ -1,4 +1,5 @@
 using Billing.Application;
+using Billing.Domain.Common;
 using Billing.Domain.Invoices;
 using FluentAssertions;
 
@@ -25,6 +26,15 @@ public class InvoiceServiceTests
 
         _repository.Saved.Should().ContainKey(id);
         _repository.Saved[id].Status.Should().Be(InvoiceStatus.Draft);
+    }
+
+    [Fact]
+    public async Task CreateAsync_InvalidCurrency_ReturnsValidationErrorAndSavesNothing()
+    {
+        var result = await _sut.CreateAsync(new CreateInvoiceRequest("cust-1", "123"), CancellationToken.None);
+
+        result.Error.Should().Be(InvoiceErrors.UnsupportedCurrency);
+        _repository.SaveCount.Should().Be(0);
     }
 
     [Fact]
@@ -60,6 +70,18 @@ public class InvoiceServiceTests
     }
 
     [Fact]
+    public async Task AddLineAsync_OverflowingPrice_IsRejectedAndNotSaved()
+    {
+        var id = await CreateDraftAsync();
+        var savesBefore = _repository.SaveCount;
+
+        var result = await _sut.AddLineAsync(id, new AddLineRequest("huge", 2, decimal.MaxValue, 0m), CancellationToken.None);
+
+        result.Error.Should().Be(InvoiceErrors.AmountTooLarge);
+        _repository.SaveCount.Should().Be(savesBefore);
+    }
+
+    [Fact]
     public async Task RecordPaymentAsync_UpdatesOutstanding()
     {
         var id = await CreateDraftAsync();
@@ -72,22 +94,41 @@ public class InvoiceServiceTests
         result.Value.Outstanding.Should().Be(5m);
     }
 
+    [Fact]
+    public async Task Mutation_WhenRepositoryReportsConflict_ReturnsConflictError()
+    {
+        var id = await CreateDraftAsync();
+        _repository.RejectNextSave = true;
+
+        var result = await _sut.AddLineAsync(id, new AddLineRequest("Pie", 1, 4m, 0m), CancellationToken.None);
+
+        result.Error.Should().Be(InvoiceErrors.ConcurrencyConflict);
+        result.Error!.Type.Should().Be(ErrorType.Conflict);
+    }
+
     // Hand-rolled fakes: simpler and more readable than a mocking library for a small port.
     private sealed class FakeInvoiceRepository : IInvoiceRepository
     {
         public Dictionary<Guid, Invoice> Saved { get; } = [];
         public int SaveCount { get; private set; }
+        public bool RejectNextSave { get; set; }
 
         public Task<Invoice?> GetAsync(Guid id, CancellationToken ct) => Task.FromResult(Saved.GetValueOrDefault(id));
 
         public Task<IReadOnlyList<Invoice>> ListAsync(CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<Invoice>>([.. Saved.Values]);
 
-        public Task SaveAsync(Invoice invoice, CancellationToken ct)
+        public Task<bool> SaveAsync(Invoice invoice, CancellationToken ct)
         {
+            if (RejectNextSave)
+            {
+                RejectNextSave = false;
+                return Task.FromResult(false);
+            }
+
             Saved[invoice.Id] = invoice;
             SaveCount++;
-            return Task.CompletedTask;
+            return Task.FromResult(true);
         }
     }
 

@@ -14,12 +14,19 @@ conversion, credit notes.
 - [x] API: create / list / get / add line / issue / record payment, ProblemDetails errors
 - [x] Web: invoice list with loading, empty and error states
 - [x] Quality gates: analyzers-as-errors, NuGet audit, ESLint zero-warnings, coverage threshold, CI
+- [x] Review fixes (2026-11-19): amount/quantity limits checked before mutation (overflow could
+      corrupt an invoice and break listing), explicit supported-currency policy (whitespace gave 500,
+      "123" was accepted), optimistic concurrency in the in-memory repository (concurrent payments
+      could overpay), ErrorType-based HTTP mapping (400/404/409/422)
 
 ## Next (in priority order)
 
 - [ ] **Persistence:** replace `InMemoryInvoiceRepository` with EF Core + SQL Server.
   - Acceptance: API integration tests run against a Testcontainers SQL Server; no domain changes needed.
-  - Open question: optimistic concurrency via rowversion? (Two operators paying the same invoice.)
+  - Keep the repository contract: copies out, `SaveAsync` returns `false` on a stale write. Implement it
+    with a rowversion column; the `Billing.Infrastructure.Tests` scenarios must pass against SQL Server too.
+  - Note: optimistic concurrency stops lost updates, not duplicate submissions. That is the
+    idempotency item below.
 - [ ] **AuthN/AuthZ:** JWT bearer auth; `billing:read` and `billing:write` policies.
   - Acceptance: unauthenticated -> 401, wrong scope -> 403, tests for both on every endpoint.
   - Needs human security review before merge.

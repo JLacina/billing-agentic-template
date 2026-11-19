@@ -5,6 +5,10 @@ updates:
     schedule: { interval: weekly }
     groups:
       dotnet: { patterns: ["*"] }
+    ignore:
+      # Licence policy: FluentAssertions 8+ requires a paid licence for commercial use; stay on 7.x (Apache 2.0).
+      - dependency-name: FluentAssertions
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: npm
     directory: /web
     schedule: { interval: weekly }
