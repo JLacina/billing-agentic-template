@@ -43,6 +43,10 @@ Feature scope and status live in `PLAN.md`. Design decisions live in `docs/adr/`
 - Small, intention-revealing names. Keep methods short. No commented-out code.
 - C#: nullable on, file-scoped namespaces, `sealed` by default, analyzers at `latest-recommended`.
   Fix analyzer warnings; don't suppress them without a one-line justification.
+- C# documentation: every public type and member in `src/` has XML docs (the build fails otherwise).
+  Methods get `<summary>` (what it is meant to do), `<param>` for each parameter, `<returns>` (including
+  which errors it can return) and `<exception>` where it throws; use `<remarks>` for the why.
+  Keep `docs/code-walkthrough.md` up to date when a class's responsibility changes.
 - TypeScript: `strict` + `noUncheckedIndexedAccess`. No `any`. ESLint must pass with zero warnings.
 
 ## Definition of done (every change)
@@ -63,7 +67,8 @@ Feature scope and status live in `PLAN.md`. Design decisions live in `docs/adr/`
 
 - Never log or persist card numbers, CVV, bank details or secrets. We don't store PAN data at all.
 - Never commit secrets. Configuration comes from environment variables / user-secrets.
-- Validate all input at the API boundary; trust nothing from the client (amounts, currency, status).
+- Treat client input as untrusted (amounts, currency, status). Enforce business validation in the domain
+  before mutation; map failures to HTTP responses at the API boundary.
 - Any change to authentication, authorisation, payments or money calculation needs human review.
   Say so explicitly in your summary.
 - New dependencies: prefer well-maintained packages, pin versions, and run `npm audit` /

@@ -26,7 +26,7 @@ A code review of the template found three defects:
    400 / 404 / 409 / 422 in one place (`ToHttp`).
 4. **Optimistic concurrency at the repository boundary.** `GetAsync` returns a copy; `SaveAsync`
    returns `false` if the invoice changed since it was loaded, and the use case returns
-   `409 invoice.concurrency_conflict`. The in-memory adapter stores immutable versioned snapshots;
+   `409 invoice.concurrency_conflict`. The in-memory adapter stores detached, versioned snapshots;
    the EF Core adapter will use a rowversion column with the same contract.
 
 ## Consequences
