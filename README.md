@@ -1,8 +1,12 @@
 # Billing: agentic engineering template
 
-A small but production-shaped billing service (.NET 10 + React/TypeScript) set up so that
-AI coding agents can work on it **safely and repeatably**: written standards, a spec, reusable
+A reusable engineering template with a billing example (.NET 10 + React/TypeScript), set up so
+that AI coding agents can work on it **safely and repeatably**: written standards, a spec, reusable
 skills, and automated quality gates that every change, human or AI, has to pass.
+
+**Scope:** the billing domain (invoices, tax, payments, validation, concurrency) is implemented and
+tested. Authentication, durable persistence (EF Core) and payment idempotency are deliberately left
+as backlog items in `PLAN.md`.
 
 ## What's here
 
@@ -14,11 +18,13 @@ skills, and automated quality gates that every change, human or AI, has to pass.
 | `.claude/settings.json` | Agent permissions: safe commands allowed, commits/installs need approval, configured deny rules for sensitive files |
 | `docs/code-walkthrough.md` | What every class and key method is meant to do, the request flow, and where each kind of test lives |
 | `docs/adr/` | Architecture Decision Records: conclusions carried between sessions and people |
+| `docs/demo.http` | Step-by-step API walkthrough: create, add line, issue, pay, and the error cases |
 | `docs/knowledge/` | Reference notes for future work, e.g. [managing context in AI-assisted development](docs/knowledge/managing-ai-context.md) |
+| `.devcontainer/` | One-click GitHub Codespaces / Dev Container with .NET 10 and Node 24 |
 | `.github/workflows/ci.yml` | Build, analyzers, format, tests + coverage, SonarQube, CodeQL, gitleaks, dependency audit |
 | `Directory.Build.props`, `.editorconfig` | .NET analyzers at `latest-recommended`, warnings as errors, NuGet vulnerability audit |
 | `src/` | `Domain` (rules) -> `Application` (use cases) -> `Api` (HTTP); `Infrastructure` (persistence) |
-| `tests/` | Domain unit tests, application tests with fakes, API integration tests (`WebApplicationFactory`) |
+| `tests/` | Domain unit tests, application tests with fakes, API integration tests (`WebApplicationFactory`), repository concurrency tests |
 | `web/` | React 19 + Vite, Vitest + Testing Library, ESLint zero-warnings, 80% coverage threshold |
 
 ## Run it
@@ -31,6 +37,14 @@ cd web && npm ci
 npm run test:coverage                                     # 11 frontend tests + coverage gate
 npm run dev                                               # http://localhost:5173
 ```
+
+Then run the requests in `docs/demo.http` (VS Code REST Client, Visual Studio or Rider) and refresh
+the web page to see the invoices.
+
+**No local setup, or a locked-down Windows machine?** Open the repo in GitHub Codespaces
+(**Code → Codespaces → Create codespace on main**). The `.devcontainer` installs .NET 10 and Node 24
+and forwards ports 5000 and 5173. Windows Smart App Control blocks unsigned locally built `.exe`/`.dll`
+files, so on machines where it is on, use Codespaces or CI.
 
 ## The workflow
 

@@ -1,54 +1,21 @@
-# React + TypeScript + Vite
+# Billing web
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React 19 + TypeScript frontend for the billing API, built with Vite.
 
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+```bash
+npm ci --ignore-scripts
+npm run dev            # http://localhost:5173, proxies /api to http://localhost:5000
+npm run lint           # ESLint, zero warnings allowed
+npm run typecheck      # tsc in strict mode with noUncheckedIndexedAccess
+npm run test:coverage  # Vitest + Testing Library, fails under 80% coverage
+npm run build          # production build into dist/
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Structure:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- `src/features/<feature>/`: components, API client, types and co-located tests for one feature
+- `src/shared/`: helpers used across features (e.g. `formatMoney`)
+- `src/test/setup.ts`: Testing Library matchers and cleanup
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
-```
+Components receive data loaders as props (e.g. `InvoiceList loadInvoices={fetchInvoices}`), so tests
+run without a network. See the root `README.md` and `CLAUDE.md` for the full conventions.
