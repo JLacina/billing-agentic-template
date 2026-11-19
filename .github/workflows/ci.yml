@@ -76,7 +76,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # full history for accurate "new code" detection
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 17
