@@ -16,6 +16,7 @@ as backlog items in `PLAN.md`.
 | `PLAN.md` | Feature spec and backlog with acceptance criteria; the agent works from it and ticks items off |
 | `.claude/skills/` | Reusable procedures: `add-api-endpoint`, `write-tests`, `pre-pr-check`, `billing-security-check`, `new-project-setup` |
 | `.claude/settings.json` | Agent permissions: safe commands allowed, commits/installs need approval, configured deny rules for sensitive files |
+| `docs/code-walkthrough.md` | What every class and key method is meant to do, the request flow, and where each kind of test lives |
 | `docs/adr/` | Architecture Decision Records: conclusions carried between sessions and people |
 | `docs/demo.http` | Step-by-step API walkthrough: create, add line, issue, pay, and the error cases |
 | `docs/knowledge/` | Reference notes for future work, e.g. [managing context in AI-assisted development](docs/knowledge/managing-ai-context.md) |
@@ -172,8 +173,8 @@ no more than 3% duplication).
 
 ## Notes
 
-- FluentAssertions is pinned to 7.2.0 (Apache 2.0); version 8 and later need a paid licence for
-  commercial use. `dependabot.yml` ignores its major updates so this stays enforced.
+- FluentAssertions remains on 7.x (Apache 2.0); version 8 and later need a paid licence for
+  commercial use, so major upgrades are excluded from Dependabot (`dependabot.yml`).
 - Supported currencies are an explicit list (`Currencies.Supported`: GBP, EUR, USD). Amounts,
   quantities and invoice totals have upper limits (`Invoice.MaxAmount` and friends) so money
   arithmetic can never overflow.

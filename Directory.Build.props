@@ -14,4 +14,11 @@
     <!-- Lock files: reproducible restores (CI uses locked mode) and input for OSV-Scanner. -->
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
+
+  <!-- Production code must be documented: every public type and member needs an XML comment
+       (CS1591), and with warnings-as-errors a missing comment fails the build. Tests are exempt:
+       their method names already describe the behaviour. -->
+  <PropertyGroup Condition="!$(MSBuildProjectName.EndsWith('.Tests'))">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
 </Project>
