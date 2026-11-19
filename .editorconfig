@@ -1,0 +1,23 @@
+root = true
+
+[*]
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{json,yml,yaml,ts,tsx,js,jsx,css,md}]
+indent_size = 2
+
+[*.cs]
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_prefer_braces = true:warning
+dotnet_style_readonly_field = true:warning
+dotnet_sort_system_directives_first = true
+# VB keyword clash (e.g. "Error"); this codebase is C#-only.
+dotnet_diagnostic.CA1716.severity = none
+
+# Tests: xUnit method names use underscores (Method_State_Expected).
+[tests/**.cs]
+dotnet_diagnostic.CA1707.severity = none
+dotnet_diagnostic.CA2007.severity = none
