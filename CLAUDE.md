@@ -47,7 +47,25 @@ Feature scope and status live in `PLAN.md`. Design decisions live in `docs/adr/`
   Methods get `<summary>` (what it is meant to do), `<param>` for each parameter, `<returns>` (including
   which errors it can return) and `<exception>` where it throws; use `<remarks>` for the why.
   Keep `docs/code-walkthrough.md` up to date when a class's responsibility changes.
+- C# async: async methods end in `Async` and take a `CancellationToken` as the last parameter, passed
+  all the way down (endpoint -> service -> repository). Never block with `.Result`, `.Wait()` or
+  `GetAwaiter().GetResult()`.
+- C# immutability: value objects and request/response DTOs are `sealed record`s. Return collections
+  as `IReadOnlyList<T>` / `IReadOnlyCollection<T>`. The aggregate has no public setters; state
+  changes only through its methods.
+- API contracts: endpoints accept and return DTOs (`InvoiceDtos.cs`), never domain types, so a domain
+  refactor can't silently change the public API.
+- Logging: use `ILogger` with structured message templates (`"Invoice {InvoiceId} paid"`), not string
+  interpolation. Log identifiers, never whole requests, DTOs or entities (they can carry sensitive data).
+- Tests: name them `Method_Scenario_ExpectedResult` (e.g. `Pay_AmountExceedsBalance_ReturnsRuleError`),
+  structure them Arrange / Act / Assert, and test one behaviour per test.
 - TypeScript: `strict` + `noUncheckedIndexedAccess`. No `any`. ESLint must pass with zero warnings.
+- TypeScript documentation: every exported function, component and type in `web/src` has a JSDoc
+  comment: a one-line summary, `@param` for each parameter (for components, document the props
+  type's fields), and `@returns` where the return isn't obvious, including which errors it can throw.
+- React: every component that loads data renders explicit loading, error and empty states. Effects
+  clean up (abort fetches, remove listeners). Interactive elements have accessible names (visible
+  label or `aria-label`) so tests can query by role.
 
 ## Definition of done (every change)
 
