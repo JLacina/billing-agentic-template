@@ -66,6 +66,9 @@ codeql (C#, TS)   secrets   vulnerability-scan   dependency-review (PRs only)
 | **vulnerability-scan** | OSV-Scanner checks every NuGet and npm dependency, including indirect ones, against the OSV vulnerability database. Findings appear under Security > Code scanning | A dependency has a known vulnerability | `osv-scanner -r .` (if installed) |
 | **dependency-review** | On pull requests only: blocks a PR that **adds** a dependency with a high-severity vulnerability | The PR introduces a high-severity vulnerable package | n/a |
 
+<img width="1364" height="796" alt="image" src="https://github.com/user-attachments/assets/8e861cf9-1696-4773-aad5-4f53dfb9514a" />
+
+
 **Where to see results:** open a run under **Actions**, then:
 - the **Summary** page shows the test result tables from `unit-tests`, `integration-tests` and `frontend`;
 - click a job, then a step, to see its full log;
