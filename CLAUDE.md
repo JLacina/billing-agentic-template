@@ -63,7 +63,8 @@ Feature scope and status live in `PLAN.md`. Design decisions live in `docs/adr/`
 
 - Never log or persist card numbers, CVV, bank details or secrets. We don't store PAN data at all.
 - Never commit secrets. Configuration comes from environment variables / user-secrets.
-- Validate all input at the API boundary; trust nothing from the client (amounts, currency, status).
+- Treat all client input as untrusted (amounts, currency, status). Enforce business validation in the
+  domain before mutation; map validation failures to HTTP responses at the API boundary.
 - Any change to authentication, authorisation, payments or money calculation needs human review.
   Say so explicitly in your summary.
 - New dependencies: prefer well-maintained packages, pin versions, and run `npm audit` /
