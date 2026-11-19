@@ -1,7 +1,5 @@
 ## Knowledge Transfer: Managing Context in AI-Assisted Development
 
-Based on Chelsea Troy’s talk, *The Curse of Unbounded Contexts: Using Domains as LLM Consumers*.
-
 Effective AI-assisted development requires deliberate management of scope, vocabulary, constraints, and decisions. A continuous chat interface does not guarantee that a growing conversation remains coherent.
 
 ### Bounded contexts and shared vocabulary
@@ -51,7 +49,7 @@ These are practical diagnostic patterns. Message counts and repeated-correction 
    | Implementing | Execute an agreed decision within stated constraints. |
 
 3. **Keep one conversation focused on one domain and purpose.**  
-   Separate unrelated tasks. The talk recommends a fresh conversation when moving between substantial phases, such as research and implementation, to reduce carryover from earlier framing.
+   Separate unrelated tasks. Start a fresh conversation when moving between substantial phases, such as research and implementation, to reduce carryover from earlier framing.
 
 4. **Transfer conclusions deliberately.**  
    Begin the next conversation with a short handoff containing accepted decisions, relevant constraints, and the next objective. Leave behind abandoned alternatives and unnecessary conversation history.
@@ -63,10 +61,10 @@ These are practical diagnostic patterns. Message counts and repeated-correction 
    > Next: implement the rule and verify it with tests.
 
 5. **Recognize when repeated correction needs a new boundary.**  
-   If the same misunderstanding survives several corrections, reassess the conversation’s framing. A fresh context can prevent old assumptions from shaping the new task. The talk relates this to DDD’s anti-corruption-layer principle: protect one model from assumptions belonging to another.
+   If the same misunderstanding survives several corrections, reassess the conversation’s framing. A fresh context can prevent old assumptions from shaping the new task. This mirrors DDD’s anti-corruption-layer principle: protect one model from assumptions belonging to another.
 
 6. **Periodically re-anchor long conversations.**  
-   Restate the current goal, accepted decisions, and constraints. The talk suggests every 15–20 messages as a practical reminder, or earlier when drift appears. Also check whether those constraints still reflect what you want.
+   Restate the current goal, accepted decisions, and constraints. Every 15–20 messages is a practical reminder, or earlier when drift appears. Also check whether those constraints still reflect what you want.
 
 ### Match the task to the amount of context management it needs
 
