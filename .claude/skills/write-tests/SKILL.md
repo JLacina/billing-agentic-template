@@ -12,6 +12,7 @@ description: Write or improve unit, integration and component tests for this rep
 | Business rule / calculation | `tests/Billing.Domain.Tests` | xUnit, FluentAssertions, no mocks |
 | Use-case orchestration | `tests/Billing.Application.Tests` | hand-rolled fakes (`FakeInvoiceRepository`, `FixedClock`) |
 | HTTP contract, status codes, serialization | `tests/Billing.Api.Tests` | `WebApplicationFactory<Program>` |
+| Persistence adapter (copies, stale writes, concurrent requests) | `tests/Billing.Infrastructure.Tests` | real `InMemoryInvoiceRepository`, `Task.WhenAll` for concurrency |
 | React component behaviour | `web/src/**/X.test.tsx` next to the component | Vitest, Testing Library |
 
 Test at the lowest level that can catch the bug. Don't test a domain rule through HTTP.

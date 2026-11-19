@@ -51,6 +51,7 @@ Feature scope and status live in `PLAN.md`. Design decisions live in `docs/adr/`
    - Domain rule -> `tests/Billing.Domain.Tests`
    - Use-case orchestration -> `tests/Billing.Application.Tests` (hand-rolled fakes)
    - HTTP contract / status codes -> `tests/Billing.Api.Tests` (`WebApplicationFactory`)
+   - Repository behaviour (copies, optimistic concurrency) -> `tests/Billing.Infrastructure.Tests`
    - UI behaviour -> co-located `*.test.tsx` with Testing Library (query by role/label, not CSS)
 2. `dotnet build`, `dotnet test`, and the frontend lint/typecheck/test commands are all green.
    Run them; don't claim success from reading the diff.

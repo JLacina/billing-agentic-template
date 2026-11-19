@@ -1,0 +1,63 @@
+### Billing API demo walkthrough
+### Start the API first:  dotnet run --project src/Billing.Api --urls http://localhost:5000
+### Run each request in order with the VS Code "REST Client" extension or Visual Studio / Rider (.http support).
+
+@baseUrl = http://localhost:5000
+
+### 1. Health check
+GET {{baseUrl}}/health
+
+### 2. Create a draft invoice (copy the "id" from the response into @invoiceId below)
+# @name create
+POST {{baseUrl}}/api/invoices
+Content-Type: application/json
+
+{ "customerId": "stadium-north", "currency": "gbp" }
+
+###
+@invoiceId = {{create.response.body.id}}
+
+### 3. Add a line: 2 x 500.00 + 20% VAT = 1,200.00
+POST {{baseUrl}}/api/invoices/{{invoiceId}}/lines
+Content-Type: application/json
+
+{ "description": "Corporate box", "quantity": 2, "unitPrice": 500.00, "taxRate": 0.20 }
+
+### 4. Issue it (no more edits allowed after this)
+POST {{baseUrl}}/api/invoices/{{invoiceId}}/issue
+
+### 5. Record a partial payment -> status PartiallyPaid, outstanding 700.00
+POST {{baseUrl}}/api/invoices/{{invoiceId}}/payments
+Content-Type: application/json
+
+{ "amount": 500.00 }
+
+### 6. Try to overpay -> 422 invoice.overpayment (business rule)
+POST {{baseUrl}}/api/invoices/{{invoiceId}}/payments
+Content-Type: application/json
+
+{ "amount": 1000.00 }
+
+### 7. Try to edit an issued invoice -> 422 invoice.not_draft
+POST {{baseUrl}}/api/invoices/{{invoiceId}}/lines
+Content-Type: application/json
+
+{ "description": "Late extra", "quantity": 1, "unitPrice": 10, "taxRate": 0 }
+
+### 8. Unsupported currency -> 400 invoice.unsupported_currency (validation)
+POST {{baseUrl}}/api/invoices
+Content-Type: application/json
+
+{ "customerId": "stadium-north", "currency": "123" }
+
+### 9. Unknown invoice -> 404 invoice.not_found
+GET {{baseUrl}}/api/invoices/00000000-0000-0000-0000-000000000000
+
+### 10. Pay the rest -> status Paid, outstanding 0
+POST {{baseUrl}}/api/invoices/{{invoiceId}}/payments
+Content-Type: application/json
+
+{ "amount": 700.00 }
+
+### 11. List all invoices
+GET {{baseUrl}}/api/invoices

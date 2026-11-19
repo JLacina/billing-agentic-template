@@ -1,6 +1,5 @@
 using Billing.Application;
 using Billing.Domain.Common;
-using Billing.Domain.Invoices;
 
 namespace Billing.Api;
 

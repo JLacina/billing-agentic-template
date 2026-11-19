@@ -27,7 +27,5 @@ app.UseCors();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.MapInvoiceEndpoints();
 
+// .NET 10 generates a public Program class, so WebApplicationFactory<Program> works without a partial declaration.
 await app.RunAsync().ConfigureAwait(false);
-
-/// <summary>Exposed so integration tests can use WebApplicationFactory&lt;Program&gt;.</summary>
-public partial class Program;
