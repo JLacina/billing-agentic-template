@@ -1,0 +1,21 @@
+{
+  // Open in GitHub Codespaces (Code -> Codespaces -> Create codespace) or VS Code Dev Containers.
+  // Gives a Linux environment with .NET 10 and Node 24, unaffected by Windows Smart App Control.
+  "name": "billing-agentic-template",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers/features/dotnet:2": { "version": "10.0" },
+    "ghcr.io/devcontainers/features/node:1": { "version": "24" }
+  },
+  "forwardPorts": [5000, 5173],
+  "portsAttributes": {
+    "5000": { "label": "Billing API" },
+    "5173": { "label": "Billing web", "onAutoForward": "openBrowser" }
+  },
+  "postCreateCommand": "dotnet restore && cd web && npm ci --ignore-scripts",
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-dotnettools.csdevkit", "dbaeumer.vscode-eslint", "humao.rest-client"]
+    }
+  }
+}
