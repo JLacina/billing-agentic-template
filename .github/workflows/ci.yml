@@ -15,7 +15,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  backend:
+  # .NET compile + static checks. No tests here; they run in parallel in their own jobs below.
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,19 +28,51 @@ jobs:
         run: dotnet build --no-restore -c Release
       - name: Format check
         run: dotnet format --verify-no-changes --no-restore
-      - name: Test with coverage
-        run: >
-          dotnet test --no-build -c Release
-          --collect:"XPlat Code Coverage"
-          --results-directory ./coverage
-          -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
       - name: Vulnerable packages
         run: |
           dotnet list package --vulnerable --include-transitive | tee vuln.txt
           ! grep -q "has the following vulnerable packages" vuln.txt
+
+  # Fast, isolated tests of business rules and use cases (no HTTP, no database).
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet restore --locked-mode
+      - name: Run unit tests (Domain + Application)
+        run: |
+          for project in tests/Billing.Domain.Tests tests/Billing.Application.Tests; do
+            dotnet test "$project" --no-restore -c Release \
+              --logger GitHubActions \
+              --collect:"XPlat Code Coverage" --results-directory ./coverage \
+              -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+          done
       - uses: actions/upload-artifact@v7
         with:
-          name: backend-coverage
+          name: unit-coverage
+          path: coverage/**/coverage.opencover.xml
+
+  # Tests through the real HTTP pipeline (routing, JSON, DI, status codes) via WebApplicationFactory.
+  integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet restore --locked-mode
+      - name: Run integration tests (API)
+        run: >
+          dotnet test tests/Billing.Api.Tests --no-restore -c Release
+          --logger GitHubActions
+          --collect:"XPlat Code Coverage" --results-directory ./coverage
+          -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+      - uses: actions/upload-artifact@v7
+        with:
+          name: integration-coverage
           path: coverage/**/coverage.opencover.xml
 
   frontend:
@@ -57,7 +90,8 @@ jobs:
       - run: npm ci --ignore-scripts # block dependency lifecycle scripts (supply-chain hardening)
       - run: npm run lint
       - run: npm run typecheck
-      - run: npm run test:coverage
+      - name: Run UI tests with coverage (results table on the run Summary page)
+        run: npm run test:coverage -- --reporter=default --reporter=github-actions
       - run: npm audit --audit-level=high
       - run: npm run build
       - uses: actions/upload-artifact@v7
@@ -68,7 +102,7 @@ jobs:
   # Static analysis + quality gate. Create the project in SonarQube Cloud (or self-hosted
   # SonarQube) and set the SONAR_TOKEN secret plus SONAR_PROJECT_KEY / SONAR_ORG variables.
   sonar:
-    needs: [backend, frontend]
+    needs: [build, unit-tests, integration-tests, frontend]
     runs-on: ubuntu-latest
     env:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -93,7 +127,7 @@ jobs:
           dotnet sonarscanner begin \
             /k:"${{ vars.SONAR_PROJECT_KEY }}" /o:"${{ vars.SONAR_ORG }}" \
             /d:sonar.host.url="https://sonarcloud.io" /d:sonar.token="$SONAR_TOKEN" \
-            /d:sonar.cs.opencover.reportsPaths="artifacts/backend-coverage/**/coverage.opencover.xml" \
+            /d:sonar.cs.opencover.reportsPaths="artifacts/unit-coverage/**/coverage.opencover.xml,artifacts/integration-coverage/**/coverage.opencover.xml" \
             /d:sonar.javascript.lcov.reportPaths="artifacts/frontend-coverage/lcov.info" \
             /d:sonar.exclusions="**/bin/**,**/obj/**,web/dist/**,web/coverage/**" \
             /d:sonar.qualitygate.wait=true
