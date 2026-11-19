@@ -21,7 +21,7 @@ dotnet list package --vulnerable --include-transitive
 
 ```bash
 cd web
-npm ci
+npm ci --ignore-scripts
 npm run lint          # zero warnings allowed
 npm run typecheck
 npm run test:coverage # fails under the 80% threshold
